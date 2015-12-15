@@ -175,6 +175,7 @@ module Kitchen
           when 'debian', 'ubuntu'
             info("Installing puppet on #{config[:platform]}")
             <<-INSTALL
+              echo "Checking for puppet install on #{config[:platform]}"
               if [ ! $(which puppet) ]; then
                 #{sudo('apt-get')} -y install wget
                 #{sudo('wget')} #{wget_proxy_parm} #{puppet_apt_repo}
@@ -193,6 +194,7 @@ module Kitchen
           when 'redhat', 'centos', 'fedora', 'oracle', 'amazon'
             info("Installing puppet from yum on #{puppet_platform}")
             <<-INSTALL
+              echo "Checking for puppet install on #{config[:platform]}"
               if [ ! $(which puppet) ]; then
                 #{install_puppet_yum_repo}
               fi
@@ -204,6 +206,7 @@ module Kitchen
           else
             info('Installing puppet, will try to determine platform os')
             <<-INSTALL
+              echo "Checking for puppet install on #{config[:platform]}"
               if [ ! $(which puppet) ]; then
                 if [ -f /etc/centos-release ] || [ -f /etc/redhat-release ] || [ -f /etc/oracle-release ]; then
                     #{install_puppet_yum_repo}
@@ -520,7 +523,13 @@ module Kitchen
         if !config[:puppet_apply_command].nil?
           return config[:puppet_apply_command]
         else
+          # this allows us to run with a proxy because if funkyness from test-kitchen running commands
+          proxy_fix = ''
+          if config[:http_proxy] || config[:https_proxy] 
+            proxy_fix = 'echo "Running Puppet Apply behind Proxy"' 
+          end 
           result = [
+            proxy_fix,
             facterlib,
             custom_facts,
             puppet_manifestdir,
